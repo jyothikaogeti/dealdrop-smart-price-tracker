@@ -104,7 +104,7 @@ export async function POST(request) {
             `Price check failed for product ${product.id}:`,
             result.error,
           );
-          result.failed++;
+          results.failed++;
           continue;
         }
 
