@@ -24,23 +24,23 @@ Online shoppers may have to revisit product pages to see whether prices have cha
 
 ## Key Features
 
-- **🔐 `Authentication:`** Sign up and Sign in with Clerk. Product pages and all Server Actions require a signed-in user.
-- **🤖 `Automatic product extraction:`** Paste a URL and Firecrawl returns name, price, currency, image, store, category, and availability as structured data.
-- **✅ `Input and data validation:`** URLs are validated and normalized, scraped data is validated before saving, and duplicate products per user are rejected.
-- **📈 `Price history chart:`** An interactive Recharts line chart of recorded prices for each product.
-- **🔄 `Manual price refresh:`** Re-check a single product's price from the UI. A history entry is recorded only when the price changes.
-- **🗂️ `Filter, sort, and paginate:`** Filters by store/website, category, availability, current-price range, and discount relative to the stored original price. Products can be sorted by recent/oldest creation, last update, or price.
-- **📧 `Price-drop emails:`** `POST /api/cron/check-prices` checks product URLs and can email the user's primary Clerk email when a lower price is detected. An external scheduler must call this endpoint. The route does not currently save the newly scraped price/history.
-- **📱 `Responsive UI:`** React components, Tailwind CSS, Lucide icons, and Sonner toast notifications provide the UI and interaction feedback.
+- **🔐 Authentication:** Sign up and Sign in with Clerk. Product pages and all Server Actions require a signed-in user.
+- **🤖 Automatic product extraction:** Paste a URL and Firecrawl returns name, price, currency, image, store, category, and availability as structured data.
+- **✅ Input and data validation:** URLs are validated and normalized, scraped data is validated before saving, and duplicate products per user are rejected.
+- **📈 Price history chart:** An interactive Recharts line chart of recorded prices for each product.
+- **🔄 Manual price refresh:** Re-check a single product's price from the UI. A history entry is recorded only when the price changes.
+- **🗂️ Filter, sort, and paginate:** Filters by store/website, category, availability, current-price range, and discount relative to the stored original price. Products can be sorted by recent/oldest creation, last update, or price.
+- **📧 Price-drop emails:** `POST /api/cron/check-prices` checks product URLs and can email the user's primary Clerk email when a lower price is detected. An external scheduler must call this endpoint. The route does not currently save the newly scraped price/history.
+- **📱 Responsive UI:** React components, Tailwind CSS, Lucide icons, and Sonner toast notifications provide the UI and interaction feedback.
 
 ## Real-World Use Cases
 
-- **🛍️ `Keep a personal watchlist`:** Save links to products you may want to buy later and review them from your product list.
-- **📈 `Inspect price movement:`** Open a product's detail page to review price history entries recorded at creation and after successful manual price updates.
-- **🔄 `Refresh before buying:`** Manually check the latest extracted price instead of relying on an outdated stored value.
-- **🛒 `Manage Products in One Place:`** Track products from different online stores through a single dashboard.
-- **📧 `Receive scheduled alerts:`** Receive email notifications when the prices of tracked products decrease.
-- **🔎 `Review and organize products:`** Filter and sort saved items by website, availability, category, price range, or discount relative to the original price.
+- **🛍️ Keep a personal watchlist:** Save links to products you may want to buy later and review them from your product list.
+- **📈 Inspect price movement:** Open a product's detail page to review price history entries recorded at creation and after successful manual price updates.
+- **🔄 Refresh before buying:** Manually check the latest extracted price instead of relying on an outdated stored value.
+- **🛒 Manage Products in One Place:** Track products from different online stores through a single dashboard.
+- **📧 Receive scheduled alerts:** Receive email notifications when the prices of tracked products decrease.
+- **🔎 Review and organize products:** Filter and sort saved items by website, availability, category, price range, or discount relative to the original price.
 
 ## Tech Stack
 
@@ -219,7 +219,7 @@ PRODUCTS ||--o{ PRICE_HISTORY : "product_id"
 
 ## API Reference
 
-### `GET /api/cron/check-prices`
+#### `GET /api/cron/check-prices`
 
 ```json
 {
@@ -243,7 +243,7 @@ curl http://localhost:3000/api/cron/check-prices
 }
 ```
 
-### `POST /api/cron/check-prices`
+#### `POST /api/cron/check-prices`
 
 Runs a check for products read from the `products` table using the Supabase service-role key. It loads the product rows and processes them sequentially. There is no request body.
 
@@ -298,12 +298,12 @@ curl -X POST http://localhost:3000/api/cron/check-prices \
 
 ## External Integrations
 
-| Service         | Purpose                                                                                                       | Code location / configuration notes                                                                                                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`Clerk`**     | Sign-up/sign-in, user identity and session token, protected-page checks, and primary-email lookup for alerts. | `app/layout.js`, `proxy.js`, auth pages, Server Actions, and the cron route. The app expects Clerk publishable and secret keys in its environment.                                                                                                     |
-| **`Supabase`**  | Postgres storage and RPC functions for product and price-history data.                                        | `supabase/server.js` creates the user-operation client with the Clerk session token; the cron route creates a separate client with `SUPABASE_SERVICE_ROLE_KEY`. Table/function definitions and Supabase-side token/RLS configuration are not included. |
-| **`Firecrawl`** | Retrieves structured product information from submitted product URLs.                                         | `lib/firecrawl.js` defines a JSON output schema and extraction prompt; `lib/products/scraper.js` wraps failures. Successful extraction is not guaranteed for every site.                                                                               |
-| **`Resend`**    | Sends price-drop notification emails.                                                                         | `lib/email.js` contains the HTML template and reads the sender and API key from environment variables. The scheduled route looks up the primary email through Clerk before sending.                                                                    |
+| Service       | Purpose                                                                                                       | Code location / configuration notes                                                                                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Clerk**     | Sign-up/sign-in, user identity and session token, protected-page checks, and primary-email lookup for alerts. | `app/layout.js`, `proxy.js`, auth pages, Server Actions, and the cron route. The app expects Clerk publishable and secret keys in its environment.                                                                                                     |
+| **Supabase**  | Postgres storage and RPC functions for product and price-history data.                                        | `supabase/server.js` creates the user-operation client with the Clerk session token; the cron route creates a separate client with `SUPABASE_SERVICE_ROLE_KEY`. Table/function definitions and Supabase-side token/RLS configuration are not included. |
+| **Firecrawl** | Retrieves structured product information from submitted product URLs.                                         | `lib/firecrawl.js` defines a JSON output schema and extraction prompt; `lib/products/scraper.js` wraps failures. Successful extraction is not guaranteed for every site.                                                                               |
+| **Resend**    | Sends price-drop notification emails.                                                                         | `lib/email.js` contains the HTML template and reads the sender and API key from environment variables. The scheduled route looks up the primary email through Clerk before sending.                                                                    |
 
 ## Environment Variables
 
@@ -335,11 +335,11 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## Prerequisites
 
-- **`Node.js ≥ 20.9.0`**: Required by the installed Next.js version.
-- **`npm`**: Used to install dependencies (`package-lock.json` is included in the repository).
-- **`Service accounts and API credentials`**: for Clerk, Supabase, Firecrawl, and Resend.
-- **`Supabase database setup`**: A Supabase project with the `products` and `price_history` tables and the `create_product_with_history` and `update_product_price_with_history` RPC functions.
-- **`Clerk–Supabase integration`**: Supabase must be configured to accept Clerk-issued session tokens for authenticated database access.
+- **Node.js ≥ 20.9.0**: Required by the installed Next.js version.
+- **npm**: Used to install dependencies (`package-lock.json` is included in the repository).
+- **Service accounts and API credentials**: for Clerk, Supabase, Firecrawl, and Resend.
+- **Supabase database setup**: A Supabase project with the `products` and `price_history` tables and the `create_product_with_history` and `update_product_price_with_history` RPC functions.
+- **Clerk–Supabase integration**: Supabase must be configured to accept Clerk-issued session tokens for authenticated database access.
 
 ## Installation and Local Setup
 
@@ -403,9 +403,9 @@ Schedule an HTTP `POST` to `/api/cron/check-prices` with `Authorization: Bearer 
 
 ## Learning Outcomes
 
-- **`Next.js Server Actions and Route Handlers`** — Used Server Actions for product operations and a Route Handler for scheduled price checks.
-- **`Supabase Integration`** — Worked with browser-side and server-side clients for database access.
-- **`Next.js Proxy`** — Used the Proxy convention for handling requests and authentication-related logic.
-- **`Web Data Extraction`** — Used Firecrawl to extract structured product details from retailer URLs.
-- **`Price History Management`** — Stored price changes while avoiding unnecessary duplicate history records.
-- **`Email Notifications`** — Created HTML email templates to notify users when product prices drop.
+- **Next.js Server Actions and Route Handlers** — Used Server Actions for product operations and a Route Handler for scheduled price checks.
+- **Supabase Integration** — Worked with browser-side and server-side clients for database access.
+- **Next.js Proxy** — Used the Proxy convention for handling requests and authentication-related logic.
+- **Web Data Extraction** — Used Firecrawl to extract structured product details from retailer URLs.
+- **Price History Management** — Stored price changes while avoiding unnecessary duplicate history records.
+- **Email Notifications** — Created HTML email templates to notify users when product prices drop.
