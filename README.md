@@ -221,13 +221,6 @@ PRODUCTS ||--o{ PRICE_HISTORY : "product_id"
 
 #### `GET /api/cron/check-prices`
 
-```json
-{
-  "success": true,
-  "message": "Price check endpoint is working. Use POST to trigger."
-}
-```
-
 **Example**
 
 ```bash id="3g60xu"
@@ -279,31 +272,31 @@ curl -X POST http://localhost:3000/api/cron/check-prices \
 
 **Error responses implemented by the route**
 
-| HTTP status | Response `error`                     | Condition                                                             |
-| ----------: | ------------------------------------ | --------------------------------------------------------------------- |
-|       `401` | `Unauthorized`                       | Missing or wrong `Authorization` header                               |
-|       `500` | `Cron secret is not configured.`     | `CRON_SECRET` is empty/unset.                                         |
-|       `500` | `Supabase configuration is missing.` | `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is missing. |
-|       `500` | `Price check failed.`                | An unhandled top-level error, such as failure to read products.       |
+| HTTP status | Response                             | Condition                                                             |
+| ----------- | ------------------------------------ | --------------------------------------------------------------------- |
+| `401`       | `Unauthorized`                       | Missing or wrong `Authorization` header                               |
+| `500`       | `Cron secret is not configured.`     | `CRON_SECRET` is empty/unset.                                         |
+| `500`       | `Supabase configuration is missing.` | `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is missing. |
+| `500`       | `Price check failed.`                | An unhandled top-level error, such as failure to read products.       |
 
 ### Product Server Actions
 
-| Server Action                   | Input                         | Behavior and result shape                                                                                                                                                         |
-| ------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `addProduct(formData)`          | `FormData` with a `url` field | Validates and extracts product data, checks for duplicates, calls the create RPC, and returns an object with `success`; on success, `product` and `message`; on failure, `error`. |
-| `deleteProduct(productId)`      | Product ID string             | Deletes only a product matching both the ID and current Clerk user ID. Returns `success` and `message` or `error`.                                                                |
-| `updateProductPrice(productId)` | Product ID string             | Scrapes latest data. If changed, invokes the update/history RPC; if unchanged, returns `success: true` with `priceChanged: false` and `historyRecorded: false`.                   |
-| `getProducts(options)`          | Optional filter object        | Returns `success` and `data` containing `products` and `total`, or an error object. Defaults include `page: 1`, `limit: 9`, and `sort: "recent"`.                                 |
-| `getProductById(id)`            | Product ID string             | Returns the product and `priceHistory` in `data`, or an error object.                                                                                                             |
+| Server Action                   | Input                  | Behavior and result shape                                                                                                                                                         |
+| ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `addProduct(formData)`          | `formData` with `url`  | Validates and extracts product data, checks for duplicates, calls the create RPC, and returns an object with `success`; on success, `product` and `message`; on failure, `error`. |
+| `deleteProduct(productId)`      | Product ID string      | Deletes only a product matching both the ID and current Clerk user ID. Returns `success` and `message` or `error`.                                                                |
+| `updateProductPrice(productId)` | Product ID string      | Scrapes latest data. If changed, invokes the update/history RPC; if unchanged, returns `success: true` with `priceChanged: false` and `historyRecorded: false`.                   |
+| `getProducts(options)`          | Optional filter object | Returns `success` and `data` containing `products` and `total`, or an error object. Defaults include `page: 1`, `limit: 9`, and `sort: "recent"`.                                 |
+| `getProductById(id)`            | Product ID string      | Returns the product and `priceHistory` in `data`, or an error object.                                                                                                             |
 
 ## External Integrations
 
-| Service       | Purpose                                                                                                       | Code location / configuration notes                                                                                                                                                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Clerk**     | Sign-up/sign-in, user identity and session token, protected-page checks, and primary-email lookup for alerts. | `app/layout.js`, `proxy.js`, auth pages, Server Actions, and the cron route. The app expects Clerk publishable and secret keys in its environment.                                                                                                     |
-| **Supabase**  | Postgres storage and RPC functions for product and price-history data.                                        | `supabase/server.js` creates the user-operation client with the Clerk session token; the cron route creates a separate client with `SUPABASE_SERVICE_ROLE_KEY`. Table/function definitions and Supabase-side token/RLS configuration are not included. |
-| **Firecrawl** | Retrieves structured product information from submitted product URLs.                                         | `lib/firecrawl.js` defines a JSON output schema and extraction prompt; `lib/products/scraper.js` wraps failures. Successful extraction is not guaranteed for every site.                                                                               |
-| **Resend**    | Sends price-drop notification emails.                                                                         | `lib/email.js` contains the HTML template and reads the sender and API key from environment variables. The scheduled route looks up the primary email through Clerk before sending.                                                                    |
+| Service       | Purpose                                                                                                       | Code location / configuration notes                                                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Clerk**     | Sign-up/sign-in, user identity and session token, protected-page checks, and primary-email lookup for alerts. | `app/layout.js`, `proxy.js`, auth pages, Server Actions, and the cron route. The app expects Clerk publishable and secret keys in its environment.                                  |
+| **Supabase**  | Postgres storage and RPC functions for product and price-history data.                                        | `supabase/server.js` creates the user-operation client with the Clerk session token; the cron route creates a separate client with `SUPABASE_SERVICE_ROLE_KEY`.                     |
+| **Firecrawl** | Retrieves structured product information from submitted product URLs.                                         | `lib/firecrawl.js` defines a JSON output schema and extraction prompt; `lib/products/scraper.js` wraps failures.                                                                    |
+| **Resend**    | Sends price-drop notification emails.                                                                         | `lib/email.js` contains the HTML template and reads the sender and API key from environment variables. The scheduled route looks up the primary email through Clerk before sending. |
 
 ## Environment Variables
 
@@ -397,7 +390,7 @@ Schedule an HTTP `POST` to `/api/cron/check-prices` with `Authorization: Bearer 
 | **Product actions fail or products cannot be loaded** | Verify `NEXT_PUBLIC_SUPABASE_URL`, the Supabase key, database tables, and Row Level Security (RLS) policies.                          |
 | **Product extraction fails**                          | Verify `FIRECRAWL_API_KEY` and check server logs to identify extraction failures.                                                     |
 | **Product creation or manual price refresh fails**    | Ensure the `create_product_with_history` and `update_product_price_with_history` RPC functions exist with compatible argument names.  |
-| **`POST /api/cron/check-prices` returns `401`**       | Verify that the request includes `Authorization: Bearer <CRON_SECRET>` and that the secret matches the configured value.              |
+| **POST `/api/cron/check-prices` returns `401`**       | Verify that the request includes `Authorization: Bearer <CRON_SECRET>` and that the secret matches the configured value.              |
 | **Price-drop emails are not received**                | Check `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, the user's primary Clerk email, and Resend delivery logs.                                |
 | **Build or dependency installation fails**            | Verify the Node.js version (`>=20.9.0`), install dependencies, and inspect the build logs.                                            |
 
