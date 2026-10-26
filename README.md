@@ -30,7 +30,7 @@ Online shoppers may have to revisit product pages to see whether prices have cha
 - **📈 Price history chart:** An interactive Recharts line chart of recorded prices for each product.
 - **🔄 Manual price refresh:** Re-check a single product's price from the UI. A history entry is recorded only when the price changes.
 - **🗂️ Filter, sort, and paginate:** Filters by store/website, category, availability, current-price range, and discount relative to the stored original price. Products can be sorted by recent/oldest creation, last update, or price.
-- **📧 Price-drop emails:** `POST /api/cron/check-prices` checks product URLs and can email the user's primary Clerk email when a lower price is detected. An external scheduler must call this endpoint. The route does not currently save the newly scraped price/history.
+- **📧 Price-drop emails:** `POST /api/cron/check-prices` checks product URLs and can email the user's primary Clerk email when a lower price is detected. An external scheduler must call this endpoint.
 - **📱 Responsive UI:** React components, Tailwind CSS, Lucide icons, and Sonner toast notifications provide the UI and interaction feedback.
 
 ## Real-World Use Cases
@@ -99,9 +99,9 @@ Next -->|"send alert"| Resend
 
 ### Scheduled check flow
 
-The cron route validates `Authorization: Bearer <CRON_SECRET>`, uses `SUPABASE_SERVICE_ROLE_KEY` to read the product table, then checks each URL sequentially. If the scraped price is lower than the stored `current_price`, it looks up the user's primary Clerk email and calls Resend. **The current route does not call `update_product_price_with_history` or otherwise update the product/history tables.** The scheduled check therefore does not, by itself, maintain a durable history of the checked prices.
+The cron route validates `Authorization: Bearer <CRON_SECRET>`, uses `SUPABASE_SERVICE_ROLE_KEY` to read the product table, then checks each URL sequentially. If the scraped price is lower than the stored `current_price`, it looks up the user's primary Clerk email and calls Resend. **The current route does not call `update_product_price_with_history` or otherwise update the product/history tables.**
 
-The `proxy.js` file runs `clerkMiddleware()` for matched requests, but it does not define global route protection. Authentication checks are also performed in the protected pages and Server Actions.
+The `proxy.js` file runs `clerkMiddleware()` for matched requests. Authentication checks are also performed in the protected pages and Server Actions.
 
 ## Folder Structure
 
@@ -205,15 +205,15 @@ PRODUCTS ||--o{ PRICE_HISTORY : "product_id"
         string website
         string category
         string image_url
-        string created_at
-        string updated_at
+        timestamp created_at
+        timestamp updated_at
     }
     PRICE_HISTORY {
         string id
         string product_id
         number price
         string currency
-        string checked_at
+        timestamp checked_at
     }
 ```
 
@@ -240,15 +240,11 @@ curl http://localhost:3000/api/cron/check-prices
 
 Runs a check for products read from the `products` table using the Supabase service-role key. It loads the product rows and processes them sequentially. There is no request body.
 
-| Header          | Value                  |
-| --------------- | ---------------------- |
-| `Authorization` | `Bearer <CRON_SECRET>` |
-
 **Example**
 
 ```bash
 curl -X POST http://localhost:3000/api/cron/check-prices \
--H "Authorization: Bearer $CRON_SECRET"
+  -H "Authorization: Bearer $CRON_SECRET"
 ```
 
 **Success (`200`)**
@@ -272,12 +268,12 @@ curl -X POST http://localhost:3000/api/cron/check-prices \
 
 **Error responses implemented by the route**
 
-| HTTP status | Response                             | Condition                                                             |
-| ----------- | ------------------------------------ | --------------------------------------------------------------------- |
-| `401`       | `Unauthorized`                       | Missing or wrong `Authorization` header                               |
-| `500`       | `Cron secret is not configured.`     | `CRON_SECRET` is empty/unset.                                         |
-| `500`       | `Supabase configuration is missing.` | `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is missing. |
-| `500`       | `Price check failed.`                | An unhandled top-level error, such as failure to read products.       |
+| Status | Response `error`                     | Condition                                                             |
+| ------ | ------------------------------------ | --------------------------------------------------------------------- |
+| `401`  | `Unauthorized`                       | Missing or wrong `Authorization` header                               |
+| `500`  | `Cron secret is not configured.`     | `CRON_SECRET` is empty/unset.                                         |
+| `500`  | `Supabase configuration is missing.` | `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is missing. |
+| `500`  | `Price check failed.`                | An unhandled top-level error, such as failure to read products.       |
 
 ### Product Server Actions
 
@@ -300,7 +296,7 @@ curl -X POST http://localhost:3000/api/cron/check-prices \
 
 ## Environment Variables
 
-### Example `.env`
+#### Example `.env`
 
 ```bash
 # Clerk
@@ -390,15 +386,18 @@ Schedule an HTTP `POST` to `/api/cron/check-prices` with `Authorization: Bearer 
 | **Product actions fail or products cannot be loaded** | Verify `NEXT_PUBLIC_SUPABASE_URL`, the Supabase key, database tables, and Row Level Security (RLS) policies.                          |
 | **Product extraction fails**                          | Verify `FIRECRAWL_API_KEY` and check server logs to identify extraction failures.                                                     |
 | **Product creation or manual price refresh fails**    | Ensure the `create_product_with_history` and `update_product_price_with_history` RPC functions exist with compatible argument names.  |
-| **POST `/api/cron/check-prices` returns `401`**       | Verify that the request includes `Authorization: Bearer <CRON_SECRET>` and that the secret matches the configured value.              |
+| **`POST /api/cron/check-prices` returns `401`**       | Verify that the request includes `Authorization: Bearer <CRON_SECRET>` and that the secret matches the configured value.              |
 | **Price-drop emails are not received**                | Check `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, the user's primary Clerk email, and Resend delivery logs.                                |
 | **Build or dependency installation fails**            | Verify the Node.js version (`>=20.9.0`), install dependencies, and inspect the build logs.                                            |
 
 ## Learning Outcomes
 
-- **Next.js Server Actions and Route Handlers** — Used Server Actions for product operations and a Route Handler for scheduled price checks.
-- **Supabase Integration** — Worked with browser-side and server-side clients for database access.
-- **Next.js Proxy** — Used the Proxy convention for handling requests and authentication-related logic.
-- **Web Data Extraction** — Used Firecrawl to extract structured product details from retailer URLs.
-- **Price History Management** — Stored price changes while avoiding unnecessary duplicate history records.
-- **Email Notifications** — Created HTML email templates to notify users when product prices drop.
+- **Full-stack development:** Building an application using the Next.js App Router and React.
+- **Authentication:** Integrating Clerk authentication with server-side application logic.
+- **Database operations:** Using Supabase PostgreSQL and RPC functions for product and price-history management.
+- **External API integration:** Extracting structured product information using Firecrawl.
+- **Data validation:** Validating URLs and extracted product information before saving data.
+- **Email notifications:** Creating transactional email notifications using Resend.
+- **Data visualization:** Displaying recorded price changes with Recharts.
+- **Application security:** Handling environment variables, server-side credentials, and user-scoped data access.
+- **Documentation:** Writing setup instructions, API references, and troubleshooting guidance for developers.
